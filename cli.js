@@ -14,21 +14,14 @@ async function connectToDB() {
   });
 
   let queryString = `SELECT * FROM items`;
-  const [rows, fields] = await connection.execute(queryString);
+  const [rows] = await connection.execute(queryString);
   storeData(rows);
 }
 
 function storeData(data) {
   for(let i = 0; i < data.length; i++) {
     let currentItem = data[i];
-    items.push(
-      {
-        id: currentItem.id,
-        name: currentItem.name,
-        price: currentItem.price,
-        type: currentItem.type
-      }
-    );
+    items.push(currentItem);
   }
 }
 
