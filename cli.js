@@ -3,9 +3,10 @@ const mysql = require('mysql2/promise');
 const colors = require('colors');
 const inquirer = require('inquirer');
 let items = [];
+let connection;
 
 async function connectToDB() {
-  const connection = await mysql.createConnection({
+  connection = await mysql.createConnection({
     host: process.env.HOST,
     port: process.env.PORT,
     user: process.env.USERNAME,
@@ -13,8 +14,9 @@ async function connectToDB() {
     database: process.env.DB
   });
 
-  let queryString = `SELECT * FROM items`;
-  const [rows] = await connection.execute(queryString);
+  let query = `SELECT * FROM items`;
+  const [rows] = await connection.execute(query);
+
   storeData(rows);
 }
 
@@ -25,18 +27,29 @@ function storeData(data) {
   }
 }
 
-function postToDB(itemData) {
+async function postToDB(itemData) {
   console.log(`Ok! Lets add that new item!`);
+  console.log(itemData);
+  let {name, price, type} = itemData;
 
-  let query = connection.query(
-    'INSERT INTO items SET ?',
-    itemData,
-    function (err, res) {
-      if (err) console.log(err);
-      console.log(res.affectedRows + 'inserted');
-      connection.end();
-    }
-  );
+  try {
+    let query = `INSERT INTO items SET name = "${name}" AND price = "${price}" AND type = "${type}"`;
+    let res = await connection.execute(query);
+    console.log(res);
+  } catch(error) {
+    console.log(error);
+    connection.end();
+  }
+
+  // let query = connection.query(
+  //   'INSERT INTO items SET ?',
+  //   itemData,
+  //   function (err, res) {
+  //     if (err) console.log(err);
+  //     console.log(res.affectedRows + 'inserted');
+  //     connection.end();
+  //   }
+  // );
 }
 
 function addNewItem() {
@@ -131,6 +144,5 @@ async function askInitQuestion() {
 
 (async function () {
   await connectToDB();
-  console.log(items);
   askInitQuestion();
 })();

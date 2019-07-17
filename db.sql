@@ -10,4 +10,4 @@ CREATE TABLE items(
 );
 
 INSERT INTO items(name, price, type)
-VALUSE('Macbook', 55000, 'computer');
+VALUES('Macbook', 55000, 'computer');
