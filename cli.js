@@ -1,24 +1,34 @@
 require('dotenv').config();
-const mysql = require('mysql');
+const mysql = require('mysql2/promise');
 const colors = require('colors');
 const inquirer = require('inquirer');
-let items;
-
-const connection = mysql.createConnection({
-  host: process.env.HOST,
-  port: process.env.PORT,
-  user: process.env.USERNAME,
-  password: process.env.PASSWORD,
-  database: process.env.DB
-});
+let items = [];
 
 async function connectToDB() {
-  try {
-    let response = await connection.connect();
-  } catch(error) {
-    console.log(
-      colors.bgRed.white.bold(error)
-    )
+  const connection = await mysql.createConnection({
+    host: process.env.HOST,
+    port: process.env.PORT,
+    user: process.env.USERNAME,
+    password: process.env.PASSWORD,
+    database: process.env.DB
+  });
+
+  let queryString = `SELECT * FROM items`;
+  const [rows, fields] = await connection.execute(queryString);
+  storeData(rows);
+}
+
+function storeData(data) {
+  for(let i = 0; i < data.length; i++) {
+    let currentItem = data[i];
+    items.push(
+      {
+        id: currentItem.id,
+        name: currentItem.name,
+        price: currentItem.price,
+        type: currentItem.type
+      }
+    );
   }
 }
 
@@ -31,19 +41,6 @@ function postToDB(itemData) {
     function (err, res) {
       if (err) console.log(err);
       console.log(res.affectedRows + 'inserted');
-      connection.end();
-    }
-  );
-}
-
-function getData() {
-  let queryString = `SELECT * FROM items`;
-
-  connection.query(
-    queryString,
-    function (err, res) {
-      if (err) throw err;
-      items = res;
       connection.end();
     }
   );
@@ -111,11 +108,8 @@ function bidPrompt() {
     });
 }
 
-(function () {
-  connectToDB();
-  getData();
-
-  inquirer.prompt([
+async function askInitQuestion() {
+  let answer = await inquirer.prompt([
     {
       type: 'checkbox',
       message: 'Would you like to add an item or bid on an item?',
@@ -129,17 +123,21 @@ function bidPrompt() {
         }
       ]
     },
-  ])
-  .then(function (res) {
-    let answer = res.postOrBid[0];
+  ]);
+  console.log(answer.postOrBid[0]);
 
-    switch (answer) {
-      case 'Add New Item':
-        addNewItem();
-        break;
-      case 'Bid on Existing Item':
-        bidPrompt();
-        break;
-    }
-  })
+  switch (answer.postOrBid[0]) {
+    case 'Add New Item':
+      addNewItem();
+      break;
+    case 'Bid on Existing Item':
+      bidPrompt();
+      break;
+  }
+}
+
+(async function () {
+  await connectToDB();
+  console.log(items);
+  askInitQuestion();
 })();
